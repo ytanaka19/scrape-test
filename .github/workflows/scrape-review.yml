@@ -2,11 +2,13 @@ name: Scrape and save reviews data
 
 on:
   schedule:
-    - cron:  '46 * * * *'
+    - cron:  '23 * * * *'
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repo content
@@ -15,25 +17,24 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.9'
             
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
             
-      - name: Get current date
-        id: date
-        run: |
-          echo "{date}={$(date +'%Y-%m-%d')}" >> $GITHUB_STATE
-            
       - name: execute py script
         env:
           API_REVIEW: ${{ secrets.API_REVIEW }}
         run: |
           python scrape.py
+
+      - name: Commit changes
+        run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add .
-          git commit -m "scraped ${{ env.date }}"
+          TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+          git commit -m "scraped at $TIMESTAMP"
           git push
